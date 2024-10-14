@@ -47,7 +47,7 @@ Void Mail is a highly customizable Discord bot designed to manage mod mail syste
 
   After setting these up, use the `/setup` command to configure the mod mail channel. This saves the settings to MongoDB.
 
-  Check out the [Discord.Net Docs](https://docs.discordnet.dev/) or refer to the code examples to further customize mod mail notifications, XP cooldowns, and other settings.
+  Check out the [Discord.Net Docs](https://docs.discordnet.dev/) or refer to the code examples to further customize mod mail notifications, and other settings.
 
 - ⚙️ The settings file (`UserCFG.ini`) is saved in the same directory as the bot. Use it to manually edit your bot’s settings.
 
