@@ -768,6 +768,7 @@ namespace VoidMail
                 .WithTitle("📩 New Modmail Received")
                 .WithColor(Color.Orange)
                 .WithDescription($"**Message from {slashCommand.User.Mention}**\n{userMessage}")
+                .WithThumbnailUrl(slashCommand.User.GetAvatarUrl() ?? slashCommand.User.GetDefaultAvatarUrl())
                 .WithTimestamp(DateTime.UtcNow)
 
                 .Build();
