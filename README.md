@@ -49,7 +49,7 @@ Void Mail is a highly customizable Discord bot designed to manage mod mail syste
 
   Check out the [Discord.Net Docs](https://docs.discordnet.dev/) or refer to the code examples to further customize mod mail notifications, and other settings.
 
-- ⚙️ The settings file (`UserCFG.ini`) is saved in the same directory as the bot. Use it to manually edit your bot’s settings.
+- ⚙️ The settings file (`UserCFG.ini`) is saved in the same directory as the bot. Use it to manually edit your bot’s settings, or primarily you can save the settings via the bots GUI.
 
 - ❤️ Contributions and suggestions from the community are welcome! Help shape future releases of Void Mail Bot.
 
