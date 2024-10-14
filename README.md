@@ -9,7 +9,7 @@
 
 ## ⚙️ **Version**: 1.0.0 (Public Release)  
 ## 👨‍💻 **Author**: VoidBot Development Team ([@VoidPool](https://github.com/V0idpool))  
-## ➕ **Add Void Mail Bot**: [Invite Void Mail Bot](https://voidbot.lol/)  
+## ➕ **Add Void Mail Bot**: [Invite Void Mail Bot](https://discord.com/oauth2/authorize?client_id=1293727784044331048)  
 ## 📅 **Release Date**: 10/13/2024  
 
 ---
