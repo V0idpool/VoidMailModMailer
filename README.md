@@ -44,6 +44,7 @@ Void Mail is a highly customizable Discord bot designed to manage mod mail syste
   - Your bot’s token.
   - Your server ID.
   - MongoDB connection client URL and the name of your MongoDB cluster.
+  - MongoDB database Collection names (Set these up in your DB cluster)
 
   After setting these up, use the `/setup` command to configure the mod mail channel. This saves the settings to MongoDB.
 
