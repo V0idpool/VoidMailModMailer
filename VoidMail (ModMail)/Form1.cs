@@ -293,11 +293,14 @@ namespace VoidMail
             LoadAvatarIntoPictureBox(botInstance.DiscordClient.CurrentUser.GetAvatarUrl(ImageFormat.Auto, 256)),
             Getbotdeets(),
             GetBotStatus(),
-            GetBotName()
+            GetBotName(),
+            botInstance.CleanupExpiredModmailBlocksAsync()
 
-    };
+        };
             // Run all important tasks without blocking the ready handler (IMPORTANT)
             _ = Task.WhenAll(importantTasks);
+            // Set an activity status (Set up a list and timer to iterate through random messages)
+            await botInstance.DiscordClient.SetActivityAsync(new Game("/modmail", ActivityType.Playing)); // Set your custom message and type
         }
 
 
@@ -324,7 +327,6 @@ namespace VoidMail
             DialogResult dialogResult = MessageBox.Show("Are you sure you want to save your settings?", "Void Mail Discord Bot [GUI]", MessageBoxButtons.YesNo);
             if (dialogResult == DialogResult.Yes)
             {
-
                 // Access to inisettings.cs functions
                 var INI2 = new VoidMail.inisettings();
                 INI2.Path = Application.StartupPath + @"\UserCFG.ini";
@@ -332,7 +334,9 @@ namespace VoidMail
                 INI2.WriteValue("Settings", "DiscordBotToken", DiscordBotToken.Text, INI2.GetPath());
                 INI2.WriteValue("Settings", "BotNickname", BotNickname.Text, INI2.GetPath());
                 INI2.WriteValue("Settings", "MongoClientLink", MongoClientLink.Text, INI2.GetPath());
-                INI2.WriteValue("Settings", "MongoDBName", MongoDBName.Text, INI2.GetPath());
+                INI2.WriteValue("Settings", "ServerSettingsCollectionName", serverSettingsCollection.Text, INI2.GetPath());
+                INI2.WriteValue("Settings", "BlockedUsersCollectionName", blockedUsersCollection.Text, INI2.GetPath());
+                INI2.WriteValue("Settings", "VoidMailLogsCollectionName", voidMailLogsCollection.Text, INI2.GetPath());
             }
             else if (dialogResult == DialogResult.No)
             {
@@ -356,6 +360,9 @@ namespace VoidMail
                 string databaseName = UserSettings(configFile, "MongoDBName");
                 string botToken = UserSettings(configFile, "DiscordBotToken");
                 string serverID = UserSettings(configFile, "ServerID");
+                string ServerSettingsCollectionName = UserSettings(configFile, "ServerSettingsCollectionName");
+                string BlockedUsersCollectionName = UserSettings(configFile, "BlockedUsersCollectionName");
+                string VoidMailLogsCollectionName = UserSettings(configFile, "VoidMailLogsCollectionName");
                 botInstance.UpdateMongoDBSettings(connectionString, databaseName);
                 if (botToken.Length < 58)
                 {
@@ -496,15 +503,6 @@ namespace VoidMail
             {
                 ServerID.Text = UserSettings(Application.StartupPath + userfile, "ServerID");
             }
-
-            if (string.IsNullOrEmpty(UserSettings(Application.StartupPath + userfile, "InviteLink")))
-            {
-                InviteLink.Text = "Permanent Discord Invite link...";
-            }
-            else
-            {
-                InviteLink.Text = UserSettings(Application.StartupPath + userfile, "InviteLink");
-            }
             if (string.IsNullOrEmpty(UserSettings(Application.StartupPath + userfile, "BotNickname")))
             {
                 BotNickname.Text = "Void Mail";
@@ -531,6 +529,30 @@ namespace VoidMail
             {
 
                 MongoDBName.Text = UserSettings(Application.StartupPath + userfile, "MongoDBName");
+            }
+            if (string.IsNullOrEmpty(UserSettings(Application.StartupPath + userfile, "ServerSettingsCollectionName")))
+            {
+                serverSettingsCollection.Text = "Server Settings Collection Name";
+            }
+            else
+            {
+                serverSettingsCollection.Text = UserSettings(Application.StartupPath + userfile, "ServerSettingsCollectionName");
+            }
+            if (string.IsNullOrEmpty(UserSettings(Application.StartupPath + userfile, "BlockedUsersCollectionName")))
+            {
+                blockedUsersCollection.Text = "Blocked Users Collection Name";
+            }
+            else
+            {
+                blockedUsersCollection.Text = UserSettings(Application.StartupPath + userfile, "BlockedUsersCollectionName");
+            }
+            if (string.IsNullOrEmpty(UserSettings(Application.StartupPath + userfile, "VoidMailLogsCollectionName")))
+            {
+                voidMailLogsCollection.Text = "Void Mail Logs Collection Name";
+            }
+            else
+            {
+                voidMailLogsCollection.Text = UserSettings(Application.StartupPath + userfile, "VoidMailLogsCollectionName");
             }
         }
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -568,6 +590,9 @@ namespace VoidMail
             DiscordBotToken.UseSystemPasswordChar = !showPassword;
             MongoClientLink.UseSystemPasswordChar = !showPassword;
             MongoDBName.UseSystemPasswordChar = !showPassword;
+            serverSettingsCollection.UseSystemPasswordChar = !showPassword;
+            voidMailLogsCollection.UseSystemPasswordChar = !showPassword;
+            blockedUsersCollection.UseSystemPasswordChar = !showPassword;
         }
 
         private void linkLabel2_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)

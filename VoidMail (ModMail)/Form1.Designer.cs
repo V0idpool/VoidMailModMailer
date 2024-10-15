@@ -112,6 +112,13 @@
             openBotPanelToolStripMenuItem = new ToolStripMenuItem();
             closeBotToolStripMenuItem = new ToolStripMenuItem();
             timer1 = new System.Windows.Forms.Timer(components);
+            nsLabel1 = new NSLabel();
+            blockedUsersCollection = new NSTextBox();
+            nsLabel2 = new NSLabel();
+            nsLabel3 = new NSLabel();
+            voidMailLogsCollection = new NSTextBox();
+            serverSettingsCollection = new NSTextBox();
+            nsLabel5 = new NSLabel();
             nsTabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             nsGroupBox3.SuspendLayout();
@@ -318,9 +325,9 @@
             nsGroupBox2.Controls.Add(nsLabel42);
             nsGroupBox2.Controls.Add(nsLabel7);
             nsGroupBox2.DrawSeperator = false;
-            nsGroupBox2.Location = new Point(0, 245);
+            nsGroupBox2.Location = new Point(0, 327);
             nsGroupBox2.Name = "nsGroupBox2";
-            nsGroupBox2.Size = new Size(545, 215);
+            nsGroupBox2.Size = new Size(545, 133);
             nsGroupBox2.SubTitle = "";
             nsGroupBox2.TabIndex = 34;
             nsGroupBox2.Text = "nsGroupBox2";
@@ -333,7 +340,7 @@
             nsComboBox11.DropDownStyle = ComboBoxStyle.DropDownList;
             nsComboBox11.ForeColor = Color.White;
             nsComboBox11.FormattingEnabled = true;
-            nsComboBox11.Location = new Point(190, 57);
+            nsComboBox11.Location = new Point(190, 58);
             nsComboBox11.Name = "nsComboBox11";
             nsComboBox11.Size = new Size(334, 24);
             nsComboBox11.TabIndex = 34;
@@ -345,7 +352,7 @@
             nsComboBox10.DropDownStyle = ComboBoxStyle.DropDownList;
             nsComboBox10.ForeColor = Color.White;
             nsComboBox10.FormattingEnabled = true;
-            nsComboBox10.Location = new Point(190, 28);
+            nsComboBox10.Location = new Point(190, 29);
             nsComboBox10.Name = "nsComboBox10";
             nsComboBox10.Size = new Size(334, 24);
             nsComboBox10.TabIndex = 33;
@@ -353,7 +360,7 @@
             // nsLabel43
             // 
             nsLabel43.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
-            nsLabel43.Location = new Point(4, 58);
+            nsLabel43.Location = new Point(4, 59);
             nsLabel43.Name = "nsLabel43";
             nsLabel43.Size = new Size(143, 23);
             nsLabel43.TabIndex = 26;
@@ -364,7 +371,7 @@
             // nsLabel42
             // 
             nsLabel42.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
-            nsLabel42.Location = new Point(4, 29);
+            nsLabel42.Location = new Point(4, 30);
             nsLabel42.Name = "nsLabel42";
             nsLabel42.Size = new Size(191, 23);
             nsLabel42.TabIndex = 25;
@@ -386,6 +393,13 @@
             // nsGroupBox1
             // 
             nsGroupBox1.BackColor = Color.FromArgb(30, 30, 30);
+            nsGroupBox1.Controls.Add(nsLabel5);
+            nsGroupBox1.Controls.Add(nsLabel1);
+            nsGroupBox1.Controls.Add(blockedUsersCollection);
+            nsGroupBox1.Controls.Add(nsLabel2);
+            nsGroupBox1.Controls.Add(nsLabel3);
+            nsGroupBox1.Controls.Add(voidMailLogsCollection);
+            nsGroupBox1.Controls.Add(serverSettingsCollection);
             nsGroupBox1.Controls.Add(nsLabel45);
             nsGroupBox1.Controls.Add(nsCheckBox1);
             nsGroupBox1.Controls.Add(MongoDBName);
@@ -397,7 +411,7 @@
             nsGroupBox1.DrawSeperator = false;
             nsGroupBox1.Location = new Point(0, 75);
             nsGroupBox1.Name = "nsGroupBox1";
-            nsGroupBox1.Size = new Size(545, 167);
+            nsGroupBox1.Size = new Size(545, 249);
             nsGroupBox1.SubTitle = "";
             nsGroupBox1.TabIndex = 33;
             nsGroupBox1.Text = "nsGroupBox1";
@@ -406,7 +420,7 @@
             // nsLabel45
             // 
             nsLabel45.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
-            nsLabel45.Location = new Point(5, 97);
+            nsLabel45.Location = new Point(7, 97);
             nsLabel45.Name = "nsLabel45";
             nsLabel45.Size = new Size(147, 23);
             nsLabel45.TabIndex = 36;
@@ -445,13 +459,13 @@
             nsLabel6.Size = new Size(129, 23);
             nsLabel6.TabIndex = 21;
             nsLabel6.Text = "nsLabel6";
-            nsLabel6.Value1 = "Bot API";
-            nsLabel6.Value2 = " Settings";
+            nsLabel6.Value1 = "Bot";
+            nsLabel6.Value2 = " API Settings";
             // 
             // nsLabel44
             // 
             nsLabel44.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
-            nsLabel44.Location = new Point(3, 68);
+            nsLabel44.Location = new Point(7, 68);
             nsLabel44.Name = "nsLabel44";
             nsLabel44.Size = new Size(147, 23);
             nsLabel44.TabIndex = 34;
@@ -462,7 +476,7 @@
             // nsLabel4
             // 
             nsLabel4.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
-            nsLabel4.Location = new Point(3, 36);
+            nsLabel4.Location = new Point(7, 39);
             nsLabel4.Name = "nsLabel4";
             nsLabel4.Size = new Size(143, 23);
             nsLabel4.TabIndex = 19;
@@ -484,12 +498,12 @@
             // 
             // DiscordBotToken
             // 
-            DiscordBotToken.Location = new Point(156, 35);
+            DiscordBotToken.Location = new Point(156, 39);
             DiscordBotToken.MaxLength = 32767;
             DiscordBotToken.Multiline = false;
             DiscordBotToken.Name = "DiscordBotToken";
             DiscordBotToken.ReadOnly = false;
-            DiscordBotToken.Size = new Size(368, 27);
+            DiscordBotToken.Size = new Size(368, 23);
             DiscordBotToken.TabIndex = 5;
             DiscordBotToken.TextAlign = HorizontalAlignment.Left;
             DiscordBotToken.UseSystemPasswordChar = true;
@@ -1061,6 +1075,7 @@
             notifyIcon1.BalloonTipText = "Bot is running in the background...";
             notifyIcon1.BalloonTipTitle = "Void Mail Discord Bot";
             notifyIcon1.ContextMenuStrip = nsContextMenu1;
+            notifyIcon1.Icon = (Icon)resources.GetObject("notifyIcon1.Icon");
             notifyIcon1.MouseDoubleClick += notifyIcon1_MouseDoubleClick;
             notifyIcon1.MouseMove += notifyIcon1_MouseMove;
             // 
@@ -1085,6 +1100,86 @@
             closeBotToolStripMenuItem.Size = new Size(156, 22);
             closeBotToolStripMenuItem.Text = "Close Bot...";
             closeBotToolStripMenuItem.Click += closeBotToolStripMenuItem_Click;
+            // 
+            // nsLabel1
+            // 
+            nsLabel1.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
+            nsLabel1.Location = new Point(6, 213);
+            nsLabel1.Name = "nsLabel1";
+            nsLabel1.Size = new Size(169, 23);
+            nsLabel1.TabIndex = 42;
+            nsLabel1.Text = "nsLabel1";
+            nsLabel1.Value1 = "Blocked Users Collection:";
+            nsLabel1.Value2 = " ";
+            // 
+            // blockedUsersCollection
+            // 
+            blockedUsersCollection.Location = new Point(190, 213);
+            blockedUsersCollection.MaxLength = 32767;
+            blockedUsersCollection.Multiline = false;
+            blockedUsersCollection.Name = "blockedUsersCollection";
+            blockedUsersCollection.ReadOnly = false;
+            blockedUsersCollection.Size = new Size(334, 23);
+            blockedUsersCollection.TabIndex = 41;
+            blockedUsersCollection.TextAlign = HorizontalAlignment.Left;
+            blockedUsersCollection.UseSystemPasswordChar = true;
+            // 
+            // nsLabel2
+            // 
+            nsLabel2.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
+            nsLabel2.Location = new Point(7, 184);
+            nsLabel2.Name = "nsLabel2";
+            nsLabel2.Size = new Size(177, 23);
+            nsLabel2.TabIndex = 40;
+            nsLabel2.Text = "nsLabel2";
+            nsLabel2.Value1 = "Void Mail Logs Collection:";
+            nsLabel2.Value2 = " ";
+            // 
+            // nsLabel3
+            // 
+            nsLabel3.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold);
+            nsLabel3.Location = new Point(7, 155);
+            nsLabel3.Name = "nsLabel3";
+            nsLabel3.Size = new Size(168, 23);
+            nsLabel3.TabIndex = 38;
+            nsLabel3.Text = "nsLabel3";
+            nsLabel3.Value1 = "Server Settings Collection:";
+            nsLabel3.Value2 = " ";
+            // 
+            // voidMailLogsCollection
+            // 
+            voidMailLogsCollection.Location = new Point(190, 184);
+            voidMailLogsCollection.MaxLength = 32767;
+            voidMailLogsCollection.Multiline = false;
+            voidMailLogsCollection.Name = "voidMailLogsCollection";
+            voidMailLogsCollection.ReadOnly = false;
+            voidMailLogsCollection.Size = new Size(334, 23);
+            voidMailLogsCollection.TabIndex = 39;
+            voidMailLogsCollection.TextAlign = HorizontalAlignment.Left;
+            voidMailLogsCollection.UseSystemPasswordChar = true;
+            // 
+            // serverSettingsCollection
+            // 
+            serverSettingsCollection.Location = new Point(190, 155);
+            serverSettingsCollection.MaxLength = 32767;
+            serverSettingsCollection.Multiline = false;
+            serverSettingsCollection.Name = "serverSettingsCollection";
+            serverSettingsCollection.ReadOnly = false;
+            serverSettingsCollection.Size = new Size(334, 23);
+            serverSettingsCollection.TabIndex = 37;
+            serverSettingsCollection.TextAlign = HorizontalAlignment.Left;
+            serverSettingsCollection.UseSystemPasswordChar = true;
+            // 
+            // nsLabel5
+            // 
+            nsLabel5.Font = new Font("Segoe UI", 11.25F, FontStyle.Bold);
+            nsLabel5.Location = new Point(6, 128);
+            nsLabel5.Name = "nsLabel5";
+            nsLabel5.Size = new Size(462, 23);
+            nsLabel5.TabIndex = 43;
+            nsLabel5.Text = "nsLabel5";
+            nsLabel5.Value1 = "MongoDB";
+            nsLabel5.Value2 = " Collections Settings";
             // 
             // Form1
             // 
@@ -1229,5 +1324,15 @@
         private NSLabel nsLabel41;
         private NSSeperator nsSeperator2;
         public NSTextBox DiscordBotToken;
+        private NSLabel nsLabel1;
+        public NSTextBox nsTextBox3;
+        private NSLabel nsLabel2;
+        private NSLabel nsLabel3;
+        public NSTextBox nsTextBox4;
+        public NSTextBox nsTextBox5;
+        private NSLabel nsLabel5;
+        public NSTextBox blockedUsersCollection;
+        public NSTextBox voidMailLogsCollection;
+        public NSTextBox serverSettingsCollection;
     }
 }

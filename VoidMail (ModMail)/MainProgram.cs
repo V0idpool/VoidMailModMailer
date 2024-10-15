@@ -46,6 +46,9 @@ namespace VoidMail
         // MongoDB Connection String & Name (read from UserCFG.ini)
         private string _connectionString;
         private string _databaseName;
+        private string _voidMailBlocks;
+        private string _serverSettings;
+        private string _voidMail;
         private static InteractionService _interactionService;
         // Flag to check if the bot is in the process of disconnecting
         private static bool isDisconnecting = false;
@@ -58,6 +61,8 @@ namespace VoidMail
         // Define MongoDB Collections here
         public IMongoCollection<ServerSettings> _serverSettingsCollection;
         public IMongoCollection<VoidMailer> _modmailCollection;
+        public IMongoCollection<VoidMailerBlock> _modmailBlockCollection;
+
         // Form1 instance access
         private static Form1 _instance;
 
@@ -73,6 +78,15 @@ namespace VoidMail
             public bool SetupNotificationSent { get; set; } = false;
             public ulong VoidMailChannelId { get; set; }
         }
+        public class VoidMailerBlock
+        {
+            public ObjectId Id { get; set; }
+            public ulong UserId { get; set; }
+            public ulong ServerId { get; set; }
+            public bool IsBlocked { get; set; }
+            public DateTime? BlockExpiry { get; set; } // Nullable, indicates an indefinite block if null
+        }
+
         public class VoidMailer
         {
             public ObjectId Id { get; set; }
@@ -108,6 +122,10 @@ namespace VoidMail
             // Load user settings
             _connectionString = UserSettings(Application.StartupPath + userFile, "MongoClientLink");
             _databaseName = UserSettings(Application.StartupPath + userFile, "MongoDBName");
+            _serverSettings = UserSettings(Application.StartupPath + userFile, "ServerSettingsCollectionName");
+            _voidMailBlocks = UserSettings(Application.StartupPath + userFile, "BlockedUsersCollectionName");
+            _voidMail = UserSettings(Application.StartupPath + userFile, "VoidMailLogsCollectionName");
+
         }
         public async Task<bool> InitializeMongoDBAsync()
         {
@@ -123,8 +141,10 @@ namespace VoidMail
                 var client = new MongoClient(_connectionString);
                 _database = client.GetDatabase(_databaseName);
                 // Get collections
-                _serverSettingsCollection = _database.GetCollection<ServerSettings>("serverSettings");
-                _modmailCollection = _database.GetCollection<VoidMailer>("voidmail");
+                _serverSettingsCollection = _database.GetCollection<ServerSettings>(_serverSettings);
+                _modmailBlockCollection = _database.GetCollection<VoidMailerBlock>(_voidMailBlocks);
+
+                _modmailCollection = _database.GetCollection<VoidMailer>(_voidMail);
                 Console.WriteLine("MongoDB client initialized successfully.");
                 // Mark MongoDB as initialized
                 IsMongoDBInitialized = true;
@@ -612,6 +632,24 @@ namespace VoidMail
             await RegisterSlashCommands();
             Console.WriteLine("Slash commands registered.");
         }
+        // Cleanup DB entries of users that are no longer restricted from Void Mail
+        public async Task CleanupExpiredModmailBlocksAsync()
+        {
+            while (true)
+            {
+                var filter = Builders<VoidMailerBlock>.Filter.Where(b => b.BlockExpiry < DateTime.UtcNow && b.IsBlocked);
+                var update = Builders<VoidMailerBlock>.Update.Set(b => b.IsBlocked, false);
+
+                // Update any expired blocks
+                var result = await _modmailBlockCollection.UpdateManyAsync(filter, update);
+
+                Console.WriteLine($"{result.ModifiedCount} expired modmail blocks were cleaned up.");
+
+                // Wait for a bit before running the cleanup again
+                await Task.Delay(TimeSpan.FromMinutes(10));
+            }
+        }
+
         public async Task LogModmail(ulong userId, string messageContent, string serverId)
         {
             var modmailLog = new VoidMailer
@@ -643,7 +681,29 @@ namespace VoidMail
                     // Retrieve the server settings for this guild from MongoDB
                     var serverSettings = await GetServerSettings(guild.Id);
                     var voidmailChannelId = serverSettings.VoidMailChannelId;
+                    // Retrieve the user's block status
+                    var block = await _modmailBlockCollection
+                        .Find(b => b.UserId == message.Author.Id && b.ServerId == guild.Id && b.IsBlocked)
+                        .FirstOrDefaultAsync();
 
+                    if (block != null)
+                    {
+                        if (block.BlockExpiry.HasValue && block.BlockExpiry < DateTime.UtcNow)
+                        {
+                            // Block expired, remove the block
+                            var update = Builders<VoidMailerBlock>.Update
+                                .Set(b => b.IsBlocked, false);
+                            await _modmailBlockCollection.UpdateOneAsync(b => b.Id == block.Id, update);
+
+                            Console.WriteLine($"Block for user {message.Author.Username} expired and has been removed.");
+                        }
+                        else
+                        {
+                            // User is still blocked
+                            Console.WriteLine($"User {message.Author.Username} is blocked from modmail.");
+                            return;
+                        }
+                    }
                     if (voidmailChannelId == 0)
                     {
                         Console.WriteLine($"VoidMailChannelId is not set in server settings for guild {guild.Name}.");
@@ -789,7 +849,7 @@ namespace VoidMail
 
             await slashCommand.FollowupAsync(embed: userEmbed, ephemeral: true);
         }
-        // Modal handler for the reply interaction
+        // Modal handler for the reply interaction, TODO Seperate user reply via dm from staff reply via mod mail channel modal for embed seperation
         private async Task HandleReplyModal(SocketModal modal)
         {
             if (!modal.HasResponded)
@@ -808,15 +868,30 @@ namespace VoidMail
                 if (ulong.TryParse(userIdString, out ulong userId) && ulong.TryParse(guildIdString, out ulong guildId))
                 {
                     var replyContent = modal.Data.Components.First(x => x.CustomId == "reply_content").Value;
+                    var guild = _client.GetGuild(guildId);
+                    // Get the guild name
+                    var guildName = guild?.Name ?? "Unknown Guild";
 
                     // Get the original user and send the reply as a DM
                     var user = _client.GetUser(userId);
                     if (user != null)
                     {
+                        // Check if the user is blocked from modmail
+                        var block = await _modmailBlockCollection
+                            .Find(b => b.UserId == modal.User.Id && b.ServerId == guildId && b.IsBlocked)
+                            .FirstOrDefaultAsync();
+
+                        if (block != null && (!block.BlockExpiry.HasValue || block.BlockExpiry >= DateTime.UtcNow))
+                        {
+                            // User is blocked, send a follow-up message to the user
+                            await user.SendMessageAsync("You are currently blocked from using modmail.");
+                            Console.WriteLine($"User {modal.User.GlobalName ?? modal.User.Username} is blocked from modmail.");
+                            return; // Exit early since the user is blocked
+                        }
                         var replyEmbed = new EmbedBuilder()
-                            .WithTitle("📩 Response from the Support Team")
+                            .WithTitle("📩 Void Mail (Mod Mail) Receipt")
                             .WithColor(Color.Blue)
-                            .WithDescription($"**From:** {modal.User.Mention}\n\n" +
+                            .WithDescription($"**Server:**\n***{guildName}***\n\n**From:** {modal.User.Mention}\n\n" +
                                              $"**Message:**\n{replyContent}")
                             .WithThumbnailUrl(modal.User.GetAvatarUrl() ?? modal.User.GetDefaultAvatarUrl())
                             .WithTimestamp(DateTime.UtcNow)
@@ -824,7 +899,7 @@ namespace VoidMail
                             .Build();
 
                         var componentsDM = new ComponentBuilder()
-                            .WithButton("Reply", customId: $"reply_{modal.User.Id}_{guildId}", ButtonStyle.Primary)
+                            .WithButton("Reply", customId: $"reply_{userId}_{guildId}", ButtonStyle.Primary)
                             .Build();
 
                         try
@@ -848,13 +923,13 @@ namespace VoidMail
                             return;
                         }
 
-                        var guild = _client.GetGuild(guildId);
-                        var modmailChannel = guild?.GetTextChannel(voidmailChannelId);
+                        var guilds = _client.GetGuild(guildId);
+                        var modmailChannel = guilds?.GetTextChannel(voidmailChannelId);
 
                         if (modmailChannel != null)
                         {
                             var logEmbed = new EmbedBuilder()
-                                .WithTitle("📩 Staff Reply")
+                                .WithTitle("📩 Void Mail (Mod Mail) Receipt")
                                 .WithColor(Color.Green)
                                 .WithDescription($"**Reply By:** {modal.User.Mention}\nReply to: {user.Mention}\n\nMessage:\n{replyContent}")
                                 .WithThumbnailUrl(modal.User.GetAvatarUrl() ?? modal.User.GetDefaultAvatarUrl())
@@ -1351,16 +1426,130 @@ namespace VoidMail
 
                 else if (slashCommand.Data.Name == "modmail")
                 {
-                    await HandleModmail(slashCommand);
+                    // Defer the interaction to give yourself more time
+                    if (!slashCommand.HasResponded)
+                    {
+                        await slashCommand.DeferAsync(ephemeral: true);
+                    }
+
+                    // Retrieve the user's block status
+                    var block = await _modmailBlockCollection
+                        .Find(b => b.UserId == slashCommand.User.Id && b.ServerId == slashCommand.GuildId && b.IsBlocked)
+                        .FirstOrDefaultAsync();
+
+                    if (block != null)
+                    {
+                        if (block.BlockExpiry.HasValue && block.BlockExpiry < DateTime.UtcNow)
+                        {
+                            // Block expired, remove the block
+                            var update = Builders<VoidMailerBlock>.Update
+                                .Set(b => b.IsBlocked, false);
+                            await _modmailBlockCollection.UpdateOneAsync(b => b.Id == block.Id, update);
+
+                            // Continue processing the modmail command after unblocking
+                            await HandleModmail(slashCommand);
+                            Console.WriteLine($"Block for user {slashCommand.User.Username} expired and has been removed.");
+                        }
+                        else
+                        {
+                            // User is still blocked, send a message back to the user
+                            await slashCommand.FollowupAsync("You are currently blocked from using modmail.", ephemeral: true);
+                            Console.WriteLine($"User {slashCommand.User.Username} is blocked from modmail.");
+                        }
+                    }
+                    else
+                    {
+                        // No block found, proceed with handling modmail
+                        await HandleModmail(slashCommand);
+                    }
                 }
+
+
+                else if (slashCommand.Data.Name == "restrictmodmail")
+                {
+                    if (!slashCommand.HasResponded)
+                    {
+                        await slashCommand.DeferAsync(ephemeral: true);
+                    }
+                    // Check if the user has admin, kick, or ban permissions
+                    var guildUser = (SocketGuildUser)slashCommand.User;
+                    if (!guildUser.GuildPermissions.Administrator && !guildUser.GuildPermissions.KickMembers && !guildUser.GuildPermissions.BanMembers)
+                    {
+                        await slashCommand.FollowupAsync("You do not have permission to run this command.", ephemeral: true);
+                        return;
+                    }
+                    var userToBlock = (SocketGuildUser)slashCommand.Data.Options.First().Value;
+                    var blockDuration = slashCommand.Data.Options.Skip(1).FirstOrDefault()?.Value?.ToString(); // Time option is optional
+                    DateTime? expiryDate = null;
+
+                    // If a block duration is provided, calculate the expiry date
+                    if (!string.IsNullOrEmpty(blockDuration))
+                    {
+                        if (int.TryParse(blockDuration, out int duration))
+                        {
+                            expiryDate = DateTime.UtcNow.AddMinutes(duration); // Block for 'duration' minutes
+                        }
+                    }
+
+                    // Save block details to the database
+                    var modMailBlock = new VoidMailerBlock
+                    {
+                        UserId = userToBlock.Id,
+                        ServerId = ((SocketGuildChannel)slashCommand.Channel).Guild.Id,
+                        IsBlocked = true, // User is blocked
+                        BlockExpiry = expiryDate
+                    };
+
+                    await _modmailBlockCollection.InsertOneAsync(modMailBlock);
+
+                    // Confirm the block
+                    await slashCommand.FollowupAsync($"User {userToBlock.Mention} has been blocked from using modmail{(expiryDate.HasValue ? $" for {blockDuration} minutes" : " indefinitely")}.");
+                }
+
+                else if (slashCommand.Data.Name == "unblockmodmail")
+                {
+                    if (!slashCommand.HasResponded)
+                    {
+                        await slashCommand.DeferAsync(ephemeral: true);
+                    }
+
+                    // Check if the user has admin, kick, or ban permissions
+                    var guildUser = (SocketGuildUser)slashCommand.User;
+                    if (!guildUser.GuildPermissions.Administrator && !guildUser.GuildPermissions.KickMembers && !guildUser.GuildPermissions.BanMembers)
+                    {
+                        await slashCommand.FollowupAsync("You do not have permission to run this command.", ephemeral: true);
+                        return;
+                    }
+
+                    var userToUnblock = (SocketGuildUser)slashCommand.Data.Options.First().Value;
+                    var guildId = ((SocketGuildChannel)slashCommand.Channel).Guild.Id;
+
+                    // Build the filter to find the document where the user is blocked, and BlockExpiry is either null or a valid date
+                    var filter = Builders<VoidMailerBlock>.Filter.Where(
+                        b => b.UserId == userToUnblock.Id && b.ServerId == guildId && b.IsBlocked
+                    );
+
+                    // Update the user's block status in the database
+                    var update = Builders<VoidMailerBlock>.Update
+                        .Set(b => b.IsBlocked, false)
+                        .Set(b => b.BlockExpiry, DateTime.UtcNow); // Set BlockExpiry to the current date and time
+
+                    // Update the document
+                    await _modmailBlockCollection.UpdateOneAsync(filter, update);
+
+                    // Confirm the unblock
+                    await slashCommand.FollowupAsync($"User {userToUnblock.Mention} has been unblocked from using modmail.");
+                }
+
+
             }
         }
         // This can be done in a seperate class file, as well as the command handler, This will be done in a later update TODO!!
         private async Task RegisterSlashCommands()
         {
             var commands = new List<SlashCommandBuilder>
-    {
-        new SlashCommandBuilder()
+            {
+            new SlashCommandBuilder()
             .WithName("help")
             .WithDescription("Display information about Void Mail, and its features."),
 
@@ -1373,9 +1562,20 @@ namespace VoidMail
             .WithDescription("Send a mod mail message to the support team.")
             .AddOption("message", ApplicationCommandOptionType.String, "Your message to the support team.", isRequired: true),
 
+           new SlashCommandBuilder()
+            .WithName("restrictmodmail")
+            .WithDescription("Block a user from using Void Mail. If no duration is provided, the block is permanent.")
+            .AddOption("user", ApplicationCommandOptionType.User, "The user to block from modmail.", isRequired: true)
+            .AddOption("duration", ApplicationCommandOptionType.String, "Optional: Duration to block the user (in minutes). Leave blank for a permanent block.", isRequired: false),
+
+
+            new SlashCommandBuilder()
+            .WithName("unblockmodmail")
+            .WithDescription("Unblock a user from using modmail.")
+            .AddOption("user", ApplicationCommandOptionType.User, "The user to unblock from modmail.", isRequired: true)
             // Add more commands here
 
-        };
+            };
             // Build the commands from the builders
             var commandsbuild = commands.Select(builder => builder.Build()).ToArray();
 
